@@ -12,7 +12,7 @@ use Illuminate\Support\Arr;
 class TranslationExportController extends Controller
 {
 
-    public function index(Request $request)
+    public function export(Request $request)
     {
 
         
