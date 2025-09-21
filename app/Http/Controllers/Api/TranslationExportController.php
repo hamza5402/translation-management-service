@@ -11,65 +11,50 @@ use Illuminate\Support\Arr;
 
 class TranslationExportController extends Controller
 {
+
     public function index(Request $request)
     {
-        // Params:
-        // locale= single locale code OR comma separated list (en,fr)
-        // tags= comma separated tags (mobile,web)
-        // nested= true/false -> convert dotted keys to nested objects
 
-        $locales = $request->query('locale'); // null => all locales
-        $tags = $request->query('tags');
-        $nested = $request->boolean('nested', true);
+        
+        $locales = $request->query('locale'); 
+        $tags    = $request->query('tags');
 
-        $localeKeyPart = $locales ? str_replace(',', '-', $locales) : 'all';
-        $tagsPart = $tags ? str_replace(',', '-', $tags) : 'all';
+        
+        $query = TranslationKey::with(['translations.locale', 'tags']);
 
-        $version = TranslationVersion::get();
-        $cacheKey = sprintf("translations_export:%s:%s:v%d", $localeKeyPart, $tagsPart, $version);
+        
+        if (!empty($tags)) {
+            $tagArray = array_map('trim', explode(',', $tags));
+            $query->whereHas('tags', function ($q) use ($tagArray) {
+                $q->whereIn('name', $tagArray);
+            });
+        }
 
-        // recommended: cache for short time but versioning ensures freshness
-        $ttl = now()->addMinutes(60);
+        $keys = $query->get();
 
-        $payload = Cache::remember($cacheKey, $ttl, function () use ($locales, $tags, $nested) {
-            $query = TranslationKey::with(['translations.locale','tags']);
+      
+        $result = [];
+        $allowedLocales = $locales ? explode(',', $locales) : null;
 
-            if ($tags) {
-                $tagArray = array_filter(array_map('trim', explode(',', $tags)));
-                $query->whereHas('tags', function($q) use ($tagArray) {
-                    $q->whereIn('name', $tagArray);
-                });
-            }
+        foreach ($keys as $key) {
+            foreach ($key->translations as $translation) {
+                $code = $translation->locale->code;
 
-            $keys = $query->get();
-
-            // build structure like { en: { 'auth.login': 'Login', ... }, fr: {...} } 
-            $result = [];
-
-            foreach ($keys as $k) {
-                foreach ($k->translations as $t) {
-                    if ($locales && !in_array($t->locale->code, explode(',', $locales))) continue;
-                    $lc = $t->locale->code;
-                    if (!isset($result[$lc])) $result[$lc] = [];
-                    $result[$lc][$k->key] = $t->content;
+                
+                if ($allowedLocales && !in_array($code, $allowedLocales)) {
+                    continue;
                 }
-            }
 
-            if ($nested) {
-                // convert dotted keys to nested arrays for each locale
-                $nestedResult = [];
-                foreach ($result as $lc => $pairs) {
-                    $nestedResult[$lc] = [];
-                    foreach ($pairs as $flatKey => $val) {
-                        Arr::set($nestedResult[$lc], $flatKey, $val);
-                    }
+                if (!isset($result[$code])) {
+                    $result[$code] = [];
                 }
-                return $nestedResult;
+
+                $result[$code][$key->key] = $translation->content;
             }
+        }
 
-            return $result;
-        });
-
-        return response()->json($payload);
+        return response()->json($result);
     }
+
+
 }

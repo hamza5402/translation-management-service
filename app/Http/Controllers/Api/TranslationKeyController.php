@@ -11,100 +11,166 @@ use App\Models\Translation;
 
 class TranslationKeyController extends Controller
 {
-    public function index(Request $request){
 
-        $q = $request->query('q'); 
-        $tag = $request->query('tag'); 
-        $locale = $request->query('locale'); 
-        $perPage = $request->query('per_page', 20);
+    public function index(Request $request)
+    {
+        
 
-        $query = TranslationKey::with(['translations.locale','tags']);
+        // Get query parameters
+        $search   = $request->query('q'); 
+        $tag      = $request->query('tag'); 
+        $locale   = $request->query('locale'); 
+        $perPage  = $request->query('per_page', 20);
 
-        if ($q) {
-            $query->where('key', 'like', "%$q%")
-                  ->orWhereHas('translations', fn($sq) => $sq->where('content','like', "%$q%"));
+        // Base query with relationships
+        $query = TranslationKey::with(['translations.locale', 'tags']);
+
+        // Search by key or translation content
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('key', 'like', "%{$search}%")
+                  ->orWhereHas('translations', function ($subQuery) use ($search) {
+                      $subQuery->where('content', 'like', "%{$search}%");
+                  });
+            });
         }
 
-        if ($tag) {
-            $query->whereHas('tags', fn($tq) => $tq->where('name', $tag));
+        // Filter by tag
+        if (!empty($tag)) {
+            $query->whereHas('tags', function ($subQuery) use ($tag) {
+                $subQuery->where('name', $tag);
+            });
         }
 
-        if ($locale) {
-            $query->whereHas('translations.locale', fn($lq) => $lq->where('code', $locale));
+        // Filter by locale
+        if (!empty($locale)) {
+            $query->whereHas('translations.locale', function ($subQuery) use ($locale) {
+                $subQuery->where('code', $locale);
+            });
         }
 
+        // Paginate results
         return $query->paginate($perPage);
     }
 
-    public function store(Request $request){
-        $payload = $request->validate([
-            'key' => 'required|string|unique:translation_keys,key',
-            'description' => 'nullable|string',
-            'tags' => 'nullable|array',
-            'tags.*' => 'string',
-            'translations' => 'nullable|array',
-            'translations.*' => 'string',
+
+    public function store(Request $request)
+    {
+        
+        // Validate request
+        $data = $request->validate([
+            'key'          => ['required', 'string', 'unique:translation_keys,key'],
+            'description'  => ['nullable', 'string'],
+            'tags'         => ['nullable', 'array'],
+            'tags.*'       => ['string'],
+            'translations' => ['required', 'array'],
+            'translations.*' => ['required', 'string'],
         ]);
 
-        $tk = TranslationKey::create(['key' => $payload['key'], 'description' => $payload['description'] ?? null]);
 
-        // Create if not existss
-        $tagIds = collect($payload['tags'] ?? [])->map(fn($t) => Tag::firstOrCreate(['name' => $t])->id)->toArray();
-        $tk->tags()->sync($tagIds);
+        $translationKey = TranslationKey::create([
+            'key'         => $data['key'],
+            'description' => $data['description'] ?? null,
+        ]);
 
-        // translations: expect ['en'=>'Hello','fr'=>'Bonjour']
-        foreach($payload['translations'] ?? [] as $localeCode => $content) {
-            $locale = Locale::firstWhere('code', $localeCode);
-            if (!$locale) continue; // or create new locale if you want
-            Translation::create([
-                'translation_key_id' => $tk->id,
-                'locale_id' => $locale->id,
-                'content' => $content,
-            ]);
+
+        $tagIds = [];
+        if (!empty($data['tags'])) {
+            foreach ($data['tags'] as $tagName) {
+                $tag = Tag::firstOrCreate(['name' => $tagName]);
+                $tagIds[] = $tag->id;
+            }
+        }
+        $translationKey->tags()->sync($tagIds);
+
+        // Handle Translations (like ['en'=>'Hello','fr'=>'Bonjour'])
+        if (!empty($data['translations'])) {
+            foreach ($data['translations'] as $localeCode => $content) {
+                $locale = Locale::where('code', $localeCode)->first();
+                if ($locale) {
+                    Translation::create([
+                        'translation_key_id' => $translationKey->id,
+                        'locale_id'          => $locale->id,
+                        'content'            => $content,
+                    ]);
+                }
+            }
         }
 
-        return response()->json($tk->load('translations.locale','tags'), 201);
+        // Return JSON response with relations
+        return response()->json(
+            $translationKey->load('translations.locale', 'tags'),
+            201
+        );
     }
+
 
     public function show(TranslationKey $key)
     {
+        
         return $key->load('translations.locale','tags');
     }
 
     public function update(Request $request, TranslationKey $key)
     {
-        $payload = $request->validate([
-            'description' => 'nullable|string',
-            'tags' => 'nullable|array',
-            'tags.*' => 'string',
-            'translations' => 'nullable|array',
-            'translations.*' => 'string',
+        
+        // Validate request
+        $data = $request->validate([
+            'key'          => ['required', 'string', 'unique:translation_keys,key'],
+            'description'  => ['nullable', 'string'],
+            'tags'         => ['nullable', 'array'],
+            'tags.*'       => ['string'],
+            'translations' => ['required', 'array'],
+            'translations.*' => ['required', 'string'],
         ]);
 
-        $key->update(['description' => $payload['description'] ?? $key->description]);
+        // Update description if provided
+        if (isset($data['description'])) {
+            $key->update([
+                'description' => $data['description']
+            ]);
+        }
 
-        if (isset($payload['tags'])) {
-            $tagIds = collect($payload['tags'])->map(fn($t) => Tag::firstOrCreate(['name'=>$t])->id)->toArray();
+        // Update Tags
+        if (!empty($data['tags'])) {
+            $tagIds = [];
+            foreach ($data['tags'] as $tagName) {
+                $tag = Tag::firstOrCreate(['name' => $tagName]);
+                $tagIds[] = $tag->id;
+            }
             $key->tags()->sync($tagIds);
         }
 
-        foreach($payload['translations'] ?? [] as $localeCode => $content) {
-            $locale = Locale::firstWhere('code', $localeCode);
-            if (!$locale) continue;
-            $translation = $key->translations()->firstWhere('locale_id', $locale->id);
-            if ($translation) {
-                $translation->update(['content' => $content]);
-            } else {
-                Translation::create([
-                    'translation_key_id' => $key->id,
-                    'locale_id' => $locale->id,
-                    'content' => $content,
-                ]);
+        // Update Translations
+        if (!empty($data['translations'])) {
+            foreach ($data['translations'] as $localeCode => $content) {
+                $locale = Locale::where('code', $localeCode)->first();
+                if ($locale) {
+                    $translation = $key->translations()
+                                       ->where('locale_id', $locale->id)
+                                       ->first();
+
+                    if ($translation) {
+                        // Update existing translation
+                        $translation->update(['content' => $content]);
+                    } else {
+                        // Create new translation
+                        Translation::create([
+                            'translation_key_id' => $key->id,
+                            'locale_id'          => $locale->id,
+                            'content'            => $content,
+                        ]);
+                    }
+                }
             }
         }
 
-        return response()->json($key->fresh()->load('translations.locale','tags'));
+        // Return updated data with relations
+        return response()->json(
+            $key->fresh()->load('translations.locale', 'tags')
+        );
     }
+
 
     public function destroy(TranslationKey $key)
     {
