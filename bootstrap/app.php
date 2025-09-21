@@ -18,45 +18,78 @@ return Application::configure(basePath: dirname(__DIR__))
     })
 
     ->withExceptions(function (Exceptions $exceptions): void {
-
         $exceptions->render(function (\Throwable $e, $request) {
-            if ($request->is('api/*')) {
-              
-                
-                if ($request->is('api/v1/login')) {
-                    
-                } else {
-                    if (!auth('sanctum')->check()) {
-                        return response()->json([
-                            'message' => 'You are not logged in or unauthorized request.'
-                        ], 401);
-                    }
-                }
+            
+            if (! $request->is('api/*')) {
+                return;
+            }
 
-                if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+            if ($request->is('api/v1/login') || $request->is('api/v1/register')) {
+               
+            } else {
+                
+                if (! auth('sanctum')->check()) {
                     return response()->json([
                         'message' => 'You are not logged in or unauthorized request.'
                     ], 401);
                 }
-
-                if ($e instanceof \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException) {
-                    return response()->json([
-                        'message' => 'Method not allowed.'
-                    ], 405);
-                }
-
-                if ($e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
-                    return response()->json([
-                        'message' => 'Endpoint not found.'
-                    ], 404);
-                }
-
-                // return response()->json([
-                //     'message' => 'Something went wrong.'
-                // ], 500);
             }
+
+            if ($e instanceof \Illuminate\Validation\ValidationException) {
+                return response()->json([
+                    'message' => $e->getMessage() ?: 'The given data was invalid.',
+                    'errors'  => $e->errors(),
+                ], 422);
+            }
+
+            if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                return response()->json([
+                    'message' => 'You are not logged in or unauthorized request.'
+                ], 401);
+            }
+
+            
+            if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                return response()->json([
+                    'message' => $e->getMessage() ?: 'This action is unauthorized.'
+                ], 403);
+            }
+
+            
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException) {
+                return response()->json([
+                    'message' => 'Method not allowed.'
+                ], 405);
+            }
+
+            
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+                return response()->json([
+                    'message' => 'Endpoint not found.'
+                ], 404);
+            }
+
+            
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) {
+                return response()->json([
+                    'message' => $e->getMessage() ?: 'HTTP error.'
+                ], $e->getStatusCode());
+            }
+
+            
+            if (method_exists($e, 'getStatusCode')) {
+                return response()->json([
+                    'message' => $e->getMessage() ?: 'Something went wrong.'
+                ], $e->getStatusCode());
+            }
+
+            
+            return response()->json([
+                'message' => 'Something went wrong.'
+            ], 500);
         });
     })
+
 
 
 

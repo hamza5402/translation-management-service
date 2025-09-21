@@ -11,11 +11,18 @@ use App\Http\Controllers\Api\Auth\AuthController;
 
 
 Route::prefix('v1')
+    ->middleware([
+        ForceJsonResponse::class,
+    ])
     ->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login');
 });
 
 Route::prefix('v1')
+    ->middleware([
+        'auth:sanctum',
+        ForceJsonResponse::class,
+    ])
     ->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
 
