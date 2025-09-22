@@ -19,39 +19,55 @@ class TranslationKeyController extends Controller
         $locale   = $request->query('locale');
         $perPage  = $request->query('per_page', 20);
 
-        $query = TranslationKey::query()
-            ->select('id', 'key', 'description')
-            ->with([
-                // Need translation_key_id so Eloquent can attach translations to the parent
-                'translations:id,translation_key_id,locale_id,content',
-                'translations.locale:id,code,name',
-                'tags:id,name'
-            ]);
+        $query = TranslationKey::query()->select('id', 'key', 'description');
 
+        // --- SEARCH ---
         if ($search) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('key', 'like', "%{$search}%")
-                  ->orWhereHas('translations', function($sub) use ($search) {
+                  ->orWhereHas('translations', function ($sub) use ($search) {
                       $sub->where('content', 'like', "%{$search}%");
                   });
             });
         }
 
+        // --- TAG FILTER ---
         if ($tag) {
-            $query->whereHas('tags', function($sub) use ($tag) {
-                $sub->where('name', $tag);
+            $tags = array_map('trim', explode(',', $tag)); // support multiple tags
+            $query->whereHas('tags', function ($sub) use ($tags) {
+                $sub->whereIn('name', $tags);
             });
         }
 
+        // --- LOCALE FILTER ---
         if ($locale) {
-            $query->whereHas('translations.locale', function($sub) use ($locale) {
+            $query->whereHas('translations.locale', function ($sub) use ($locale) {
                 $sub->where('code', $locale);
             });
+
+            // Constrain eager load to only fetch translations for this locale
+            $query->with([
+                'translations' => function ($q) use ($locale) {
+                    $q->select('id', 'translation_key_id', 'locale_id', 'content')
+                      ->whereHas('locale', function ($sub) use ($locale) {
+                          $sub->where('code', $locale);
+                      });
+                },
+                'translations.locale:id,code,name',
+                'tags:id,name'
+            ]);
+        } else {
+            // Default eager load (all translations + tags)
+            $query->with([
+                'translations:id,translation_key_id,locale_id,content',
+                'translations.locale:id,code,name',
+                'tags:id,name'
+            ]);
         }
 
         $paginated = $query->paginate($perPage);
 
-        // Hide unwanted fields in nested relations before returning
+        // --- TRANSFORM RESPONSE ---
         $paginated->getCollection()->transform(function ($item) {
             // hide translation foreign keys
             $item->translations->each(function ($t) {
@@ -68,6 +84,7 @@ class TranslationKeyController extends Controller
 
         return $paginated;
     }
+
 
 
 
@@ -115,12 +132,6 @@ class TranslationKeyController extends Controller
         }
 
         $response = $this->adjusted_json_response($translationKey->key);
-
-
-        // return response()->json(
-        //     $translationKey->load('translations.locale', 'tags'),
-        //     201
-        // );
 
         return response()->json($response, 201);
     }
