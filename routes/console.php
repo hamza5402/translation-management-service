@@ -29,9 +29,9 @@ Artisan::command('seed:translations {count=1000}', function (int $count) {
         $response = $controller->store($request);
 
         if ($response->status() === 201) {
-            $this->info("Inserted: auth.login.button{$i}");
+            $this->info("Inserted: something{$i}");
         } else {
-            $this->warn("Skipped: auth.login.button{$i}");
+            $this->warn("Skipped: something{$i}");
         }
     }
 })->purpose('Seed fake translations into the system');
