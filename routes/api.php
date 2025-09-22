@@ -33,8 +33,8 @@ Route::prefix('v1')
         // Keys
         Route::get('/keys', [TranslationKeyController::class, 'index']);
         Route::post('/keys', [TranslationKeyController::class, 'store']);
-        Route::get('/keys/{id}', [TranslationKeyController::class, 'show']);
-        Route::put('/keys/{id}', [TranslationKeyController::class, 'update']);
+        Route::get('/keys/{key}', [TranslationKeyController::class, 'show']);
+        Route::put('keys/{key}', [TranslationKeyController::class, 'update']);
       
 
         // Export

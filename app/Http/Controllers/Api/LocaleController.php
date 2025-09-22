@@ -15,7 +15,7 @@ class LocaleController extends Controller
      */
     public function index(): JsonResponse
     {
-        $locales = Locale::orderBy('code')->get();
+        $locales = Locale::get();
         return response()->json($locales);
     }
 
