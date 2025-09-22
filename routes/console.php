@@ -16,12 +16,12 @@ Artisan::command('seed:translations {count=1000}', function (int $count) {
         $chosenLocales = collect($locales)->random(rand(1, count($locales)))->values()->toArray();
         $translations = [];
         foreach ($chosenLocales as $locale) {
-            $translations[$locale] = "Login (" . strtoupper($locale) . ")";
+            $translations[$locale] = "Something (" . strtoupper($locale) . ")";
         }
 
         $request = Request::create('/api/v1/keys', 'POST', [
-            'key'          => "auth.login.button{$i}",
-            'description'  => "Login button label {$i}",
+            'key'          => "something{$i}",
+            'description'  => "something{$i}",
             'tags'         => $tags,
             'translations' => $translations,
         ]);
