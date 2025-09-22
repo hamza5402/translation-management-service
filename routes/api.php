@@ -35,7 +35,7 @@ Route::prefix('v1')
         Route::post('/keys', [TranslationKeyController::class, 'store']);
         Route::get('/keys/{id}', [TranslationKeyController::class, 'show']);
         Route::put('/keys/{id}', [TranslationKeyController::class, 'update']);
-        Route::delete('/keys/{id}', [TranslationKeyController::class, 'destroy']);
+      
 
         // Export
         Route::get('/translations/export', [TranslationExportController::class, 'export']);

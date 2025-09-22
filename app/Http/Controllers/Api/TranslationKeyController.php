@@ -12,46 +12,64 @@ use App\Models\Translation;
 class TranslationKeyController extends Controller
 {
 
-    public function index(Request $request)
-    {
-        
+public function index(Request $request)
+{
+    $search   = $request->query('q');
+    $tag      = $request->query('tag');
+    $locale   = $request->query('locale');
+    $perPage  = $request->query('per_page', 20);
 
-        // Get query parameters
-        $search   = $request->query('q'); 
-        $tag      = $request->query('tag'); 
-        $locale   = $request->query('locale'); 
-        $perPage  = $request->query('per_page', 20);
+    $query = TranslationKey::query()
+        ->select('id', 'key', 'description')
+        ->with([
+            // Need translation_key_id so Eloquent can attach translations to the parent
+            'translations:id,translation_key_id,locale_id,content',
+            'translations.locale:id,code,name',
+            'tags:id,name'
+        ]);
 
-        // Base query with relationships
-        $query = TranslationKey::with(['translations.locale', 'tags']);
-
-        // Search by key or translation content
-        if (!empty($search)) {
-            $query->where(function ($q) use ($search) {
-                $q->where('key', 'like', "%{$search}%")
-                  ->orWhereHas('translations', function ($subQuery) use ($search) {
-                      $subQuery->where('content', 'like', "%{$search}%");
-                  });
-            });
-        }
-
-        // Filter by tag
-        if (!empty($tag)) {
-            $query->whereHas('tags', function ($subQuery) use ($tag) {
-                $subQuery->where('name', $tag);
-            });
-        }
-
-        // Filter by locale
-        if (!empty($locale)) {
-            $query->whereHas('translations.locale', function ($subQuery) use ($locale) {
-                $subQuery->where('code', $locale);
-            });
-        }
-
-        // Paginate results
-        return $query->paginate($perPage);
+    if ($search) {
+        $query->where(function($q) use ($search) {
+            $q->where('key', 'like', "%{$search}%")
+              ->orWhereHas('translations', function($sub) use ($search) {
+                  $sub->where('content', 'like', "%{$search}%");
+              });
+        });
     }
+
+    if ($tag) {
+        $query->whereHas('tags', function($sub) use ($tag) {
+            $sub->where('name', $tag);
+        });
+    }
+
+    if ($locale) {
+        $query->whereHas('translations.locale', function($sub) use ($locale) {
+            $sub->where('code', $locale);
+        });
+    }
+
+    $paginated = $query->paginate($perPage);
+
+    // Hide unwanted fields in nested relations before returning
+    $paginated->getCollection()->transform(function ($item) {
+        // hide translation foreign keys
+        $item->translations->each(function ($t) {
+            $t->makeHidden(['translation_key_id', 'locale_id']);
+        });
+
+        // hide pivot data inside tags
+        $item->tags->each(function ($tag) {
+            $tag->makeHidden(['pivot']);
+        });
+
+        return $item;
+    });
+
+    return $paginated;
+}
+
+
 
 
     public function store(Request $request)
@@ -116,12 +134,11 @@ class TranslationKeyController extends Controller
         
         // Validate request
         $data = $request->validate([
-            'key'          => ['required', 'string', 'unique:translation_keys,key'],
-            'description'  => ['nullable', 'string'],
-            'tags'         => ['nullable', 'array'],
-            'tags.*'       => ['string'],
-            'translations' => ['required', 'array'],
-            'translations.*' => ['required', 'string'],
+            'description'  => 'nullable|string',
+            'tags'         => 'nullable|array',
+            'tags.*'       => 'string',
+            'translations' => 'nullable|array',
+            'translations.*' => 'string',
         ]);
 
         // Update description if provided

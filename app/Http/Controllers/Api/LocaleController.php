@@ -30,16 +30,52 @@ class LocaleController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'code' => ['required', 'string', 'max:10', 'unique:locales,code'],
-            'name' => ['nullable', 'string', 'max:100'],
-        ]);
+        $data = $request->all();
 
-        $locale = Locale::create([
-            'code' => strtolower($data['code']),
-            'name' => $data['name'] ?? null,
-        ]);
+        
+        if (isset($data['code'])) {
+            $data = [$data];
+        }
 
-        return response()->json($locale, 201);
+        $inserted = [];
+        $skipped = [];
+
+        foreach ($data as $localeData) {
+            $validator = \Validator::make($localeData, [
+                'code' => ['required', 'string', 'max:10'],
+                'name' => ['nullable', 'string', 'max:100'],
+            ]);
+
+            if ($validator->fails()) {
+                $skipped[] = [
+                    'input' => $localeData,
+                    'errors' => $validator->errors(),
+                ];
+                continue;
+            }
+
+   
+            if (Locale::where('code', strtolower($localeData['code']))->exists()) {
+                $skipped[] = [
+                    'input' => $localeData,
+                    'reason' => 'Already exists',
+                ];
+                continue;
+            }
+
+            $locale = Locale::create([
+                'code' => strtolower($localeData['code']),
+                'name' => $localeData['name'] ?? null,
+            ]);
+
+            $inserted[] = $locale;
+        }
+
+        return response()->json([
+            'inserted' => $inserted,
+            'skipped' => $skipped,
+        ], 201);
     }
+
+
 }

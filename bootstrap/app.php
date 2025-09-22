@@ -84,9 +84,9 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             
-            return response()->json([
-                'message' => 'Something went wrong.'
-            ], 500);
+            // return response()->json([
+            //     'message' => 'Something went wrong.'
+            // ], 500);
         });
     })
 
