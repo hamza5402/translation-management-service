@@ -11,9 +11,6 @@
 			"item": [
 				{
 					"name": "store",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -21,7 +18,7 @@
 								"token": "{{token}}"
 							}
 						},
-						"method": "GET",
+						"method": "POST",
 						"header": [
 							{
 								"key": "Accept",
