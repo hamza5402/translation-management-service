@@ -46,28 +46,32 @@ It provides APIs to store, retrieve, and export translation keys, values, and ta
 
    cp .env.example .env
 
-4. **Copy .env file**
-
-   cp .env.example .env
-
-5. **Generate application key**
+4. **Generate application key**
 
    php artisan key:generate
 
-6. **Configure database**
+5. **Configure database**
 
    DB_DATABASE=translation_service
    DB_USERNAME=root
    DB_PASSWORD=yourpassword
 
-7. **Run migration and seed**
+6. **Run migration and seed**
 
    php artisan migrate --seed
 
-8. **Start the local server**
+7. **Start the local server**
 
    php artisan serve
 
+
+   ---
+
+## ⚙️ Populate Fake Data
+
+You can populate fake translations into the database using the custom artisan command:
+
+php artisan seed:translations {number}	
 
    ---
 
@@ -103,3 +107,9 @@ database/
 🔹 See Postman Collection
 
 	postman/translation_management_service.postman_collection.json
+
+
+> **Note:**  
+> The system only accepts translations for locales that already exist in the `locales` table.  
+> If you want to insert translations for a new language, you must first add that locale to the `locales` table, and then you can add translations for it.
+
