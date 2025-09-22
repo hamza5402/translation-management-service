@@ -1,0 +1,298 @@
+{
+	"info": {
+		"_postman_id": "fddbcd8e-61cd-4eef-9d0b-ff98b8895fff",
+		"name": "translation_management_service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "35372242"
+	},
+	"item": [
+		{
+			"name": "locale",
+			"item": [
+				{
+					"name": "store",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{token}}"
+							}
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\r\n  { \"code\": \"en\", \"name\": \"English\" },\r\n  { \"code\": \"fr\", \"name\": \"French\" },\r\n  { \"code\": \"es\", \"name\": \"Spanish\" },\r\n  { \"code\": \"de\", \"name\": \"German\" },\r\n  { \"code\": \"it\", \"name\": \"Italian\" },\r\n  { \"code\": \"pt\", \"name\": \"Portuguese\" },\r\n  { \"code\": \"ru\", \"name\": \"Russian\" },\r\n  { \"code\": \"zh\", \"name\": \"Chinese\" },\r\n  { \"code\": \"ja\", \"name\": \"Japanese\" },\r\n  { \"code\": \"ar\", \"name\": \"Arabic\" }\r\n]\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseURL}}/api/v1/locales"
+					},
+					"response": []
+				},
+				{
+					"name": "view",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{token}}"
+							}
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text",
+								"disabled": true
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\r\n  { \"code\": \"en\", \"name\": \"English\" },\r\n  { \"code\": \"fr\", \"name\": \"French\" },\r\n  { \"code\": \"es\", \"name\": \"Spanish\" },\r\n  { \"code\": \"de\", \"name\": \"German\" },\r\n  { \"code\": \"it\", \"name\": \"Italian\" },\r\n  { \"code\": \"pt\", \"name\": \"Portuguese\" },\r\n  { \"code\": \"ru\", \"name\": \"Russian\" },\r\n  { \"code\": \"zh\", \"name\": \"Chinese\" },\r\n  { \"code\": \"ja\", \"name\": \"Japanese\" },\r\n  { \"code\": \"ar\", \"name\": \"Arabic\" }\r\n]\r\n"
+						},
+						"url": "{{baseURL}}/api/v1/locales"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "keys",
+			"item": [
+				{
+					"name": "view",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{token}}"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/api/v1/keys?tag=web&q=something&locale=en",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"keys"
+							],
+							"query": [
+								{
+									"key": "tag",
+									"value": "web"
+								},
+								{
+									"key": "q",
+									"value": "something"
+								},
+								{
+									"key": "locale",
+									"value": "en"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "store",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{token}}"
+							}
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"key\": \"something\",\r\n  \"description\": \"something description\",\r\n  \"tags\": [\"web\", \"mobile\"],\r\n  \"translations\": {\r\n    \"en\": \"something (en)\",\r\n    \"fr\": \"something (fr)\",\r\n    \"es\": \"something (es)\"\r\n  }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseURL}}/api/v1/keys"
+					},
+					"response": []
+				},
+				{
+					"name": "update",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{token}}"
+							}
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"description\": \"something updated\",\r\n  \"tags\": [\"web\", \"mobile\"],\r\n  \"translations\": {\r\n    \"en\": \"something updated\",\r\n    \"fr\": \"something updated\",\r\n    \"es\": \"something updated\"\r\n  }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "{{baseURL}}/api/v1/keys/something"
+					},
+					"response": []
+				},
+				{
+					"name": "show",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{token}}"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"key\": \"somthing2\",\r\n  \"description\": \"somethig\",\r\n  \"tags\": [\"web\", \"mobile\"],\r\n  \"translations\": {\r\n    \"en\": \"somthing\",\r\n    \"fr\": \"somthing\",\r\n    \"es\": \"somthing\"\r\n  }\r\n}"
+						},
+						"url": "{{baseURL}}/api/v1/keys/something"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "auth",
+			"item": [
+				{
+					"name": "login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let jsonData = pm.response.json();\r",
+									"pm.environment.set(\"token\", jsonData.token);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "email",
+									"value": "admin@example.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "secret123",
+									"type": "text"
+								}
+							]
+						},
+						"url": "http://localhost:8000/api/v1/login"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "export",
+			"item": [
+				{
+					"name": "export",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "{{token}}"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseURL}}/api/v1/translations/export?tag=web&q=something&locale=en",
+							"host": [
+								"{{baseURL}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"translations",
+								"export"
+							],
+							"query": [
+								{
+									"key": "tag",
+									"value": "web"
+								},
+								{
+									"key": "q",
+									"value": "something"
+								},
+								{
+									"key": "locale",
+									"value": "en"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseURL",
+			"value": "",
+			"type": "default"
+		}
+	]
+}
